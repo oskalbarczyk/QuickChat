@@ -11,12 +11,12 @@ public class Client implements Runnable, ClientInterface {
     private BufferedReader in;
     private PrintWriter out;
     private boolean done;
-    private boolean loggedIn;
+    private boolean loggedIn = false;
 
     @Override
     public void run() {
         try {
-            client = new Socket("127.0.0.1", 9999);
+            client = new Socket("127.0.0.1", 80);
             out = new PrintWriter(client.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
@@ -54,12 +54,14 @@ public class Client implements Runnable, ClientInterface {
 
     @Override
     public void login(String nickname, String password) {
+        out.println("1");  // Send the choice
         out.println(nickname);  // Send the username
         out.println(password);  // Send the password
     }
 
     @Override
     public void register(String nickname, String password) {
+        out.println("2");  // Send the choice
         out.println(nickname);  // Send the username
         out.println(password);  // Send the password
     }
@@ -71,27 +73,33 @@ public class Client implements Runnable, ClientInterface {
                 BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
                 while (!done) {
                     while (!loggedIn) {
-                        System.out.println(in.readLine());
-                        System.out.println(in.readLine());
-                        System.out.println(in.readLine());
+                        System.out.println("Press key to: ");
+                        System.out.println("1. Login: ");
+                        System.out.println("2. Register: ");
                         String choice = inReader.readLine();
-                        out.println(choice);
                         if (choice.equals("1")) {
                             System.out.println("Enter nickname: ");
                             String nickname = inReader.readLine();
                             System.out.println("Enter password: ");
                             String password = inReader.readLine();
                             login(nickname, password);
+                            String response = in.readLine();
+                            if (response.equals("logged in")) {
+                                loggedIn = true;
+                            }
                         } else if (choice.equals("2")) {
                             System.out.println("Enter nickname: ");
                             String nickname = inReader.readLine();
                             System.out.println("Enter password: ");
                             String password = inReader.readLine();
                             register(nickname, password);
+
+                            String response = in.readLine();
+                            if (response.equals("logged in")) {
+                                loggedIn = true;
+                            }
                         }
-
                     }
-
 
                     String serverMessage = in.readLine();
                     System.out.println(serverMessage);

@@ -18,13 +18,13 @@ public class Server implements Runnable {
         running = true;
         connections = new ArrayList<>();
         users = new ArrayList<>();
-
+        System.out.println("Server started");
     }
 
     @Override
     public void run() {
         try {
-            server = new ServerSocket(9999);
+            server = new ServerSocket(80);
             pool = Executors.newCachedThreadPool();
             while (running) {
                 Socket client = server.accept();
@@ -60,8 +60,10 @@ public class Server implements Runnable {
         }
     }
 
-    public void register(String password, String nickname) {
-        users.add(new User(nickname, password));
+    public User register(String password, String nickname) {
+        User user = new User(nickname, password);
+        users.add(user);
+        return user;
     }
 
     public User login(String nickname, String password) {
@@ -86,36 +88,34 @@ public class Server implements Runnable {
         @Override
         public void run() {
             try {
-                System.out.println("Client " + client.getLocalAddress()  + " connected");
+                System.out.println("Client " + client.getLocalAddress() + " connected");
                 User user = null;
                 out = new PrintWriter(client.getOutputStream(), true);
                 in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                out.println("Type number to: ");
-                out.println("1. Login");
-                out.println("2. Register");
                 String choice = in.readLine();
                 while (!loggedIn) {
                     if (choice.equals("1")) {
-                        out.println("Enter nickname: ");
                         String nickname = in.readLine();
-                        System.out.println(nickname);
-                        out.println("Enter password: ");
                         String password = in.readLine();
-                        System.out.println(password);
                         user = login(nickname, password);
                         if (user != null) {
                             loggedIn = true;
-                            out.println("You are now logged in");
-                            System.out.println("User " + nickname + " logged in");
+                            out.println("logged in");
                         } else {
-                            out.println("Wrong username or password");
-                            System.out.println("User " + nickname + " failed to log in");
+                            out.println("login failed");
                         }
+                    } else if (choice.equals("2")) {
+                        String nickname = in.readLine();
+                        String password = in.readLine();
+                        user = register(password, nickname);
+                        System.out.println("Added user: " + user.nickname + " " + user.id);
+                        loggedIn = true;
+                        out.println("logged in");
+
                     }
                 }
-                if(user == null){
-                    shutdown();
-                }
+
+
                 out.println("Enter message: ");
                 String message = in.readLine();
                 String nickname = user.getNickname();
