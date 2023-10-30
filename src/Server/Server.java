@@ -24,7 +24,7 @@ public class Server implements Runnable {
     @Override
     public void run() {
         try {
-            server = new ServerSocket(80);
+            server = new ServerSocket(8080);
             pool = Executors.newCachedThreadPool();
             while (running) {
                 Socket client = server.accept();
@@ -39,7 +39,7 @@ public class Server implements Runnable {
 
     public void broadcast(String message) {
         for (ConnectionHandler ch : connections) {
-            if (ch != null) {
+            if (ch != null && ch.isLoggedIn()) {
                 ch.sendMessage(message);
             }
         }
@@ -60,7 +60,7 @@ public class Server implements Runnable {
         }
     }
 
-    public User register(String password, String nickname) {
+    public User register(String nickname, String password){
         User user = new User(nickname, password);
         users.add(user);
         return user;
@@ -80,6 +80,7 @@ public class Server implements Runnable {
         private BufferedReader in;
         private PrintWriter out;
         private boolean loggedIn;
+        private User user;
 
         public ConnectionHandler(Socket client) {
             this.client = client;
@@ -89,41 +90,60 @@ public class Server implements Runnable {
         public void run() {
             try {
                 System.out.println("Client " + client.getLocalAddress() + " connected");
-                User user = null;
+                if(!loggedIn){
+                    System.out.println("Client " + client.getLocalAddress() + " is not logged in");
+                }
+
                 out = new PrintWriter(client.getOutputStream(), true);
                 in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                String choice = in.readLine();
+
                 while (!loggedIn) {
-                    if (choice.equals("1")) {
+                    String choice = in.readLine();
+                    if (choice.equals("login")) {
                         String nickname = in.readLine();
                         String password = in.readLine();
                         user = login(nickname, password);
-                        if (user != null) {
+                        if(user != null){
                             loggedIn = true;
                             out.println("logged in");
-                        } else {
-                            out.println("login failed");
+                            System.out.println("Client " + client.getLocalAddress() + " logged in");
+                        }else{
+                            loggedIn = false;
+                            out.println("failed");
+                            System.out.println("Client " + client.getLocalAddress() + " failed to log in");
+
                         }
-                    } else if (choice.equals("2")) {
+
+                    } else if (choice.equals("register")) {
                         String nickname = in.readLine();
                         String password = in.readLine();
-                        user = register(password, nickname);
-                        System.out.println("Added user: " + user.nickname + " " + user.id);
-                        loggedIn = true;
-                        out.println("logged in");
+                        user = register(nickname, password);
+                        if(user != null){
+                            loggedIn = true;
+                            out.println("registered");
+                            System.out.println("Client " + client.getLocalAddress() + " registered as: " + nickname);
+                        }else{
+                            loggedIn = false;
+                            out.println("failed");
+                            System.out.println("Client " + client.getLocalAddress() + " failed to register");
+                        }
+                    }
+                }
 
+                String nickname = user.nickname;
+
+                while (loggedIn) { // Add this loop here
+                    String inMessage = in.readLine();
+                    if (inMessage.equals("/exit")) {
+                        shutdown();
+                        break; // break the loop
+                    } else {
+                        System.out.println(nickname + ": " + inMessage);
+                        broadcast(nickname + ": " + inMessage);
                     }
                 }
 
 
-                out.println("Enter message: ");
-                String message = in.readLine();
-                String nickname = user.getNickname();
-                while (message != null) {
-                    broadcast(nickname + ": " + message);
-                    System.out.println(nickname + ": " + message);
-                    message = in.readLine();
-                }
             } catch (IOException e) {
                 shutdown();
             }
@@ -136,17 +156,19 @@ public class Server implements Runnable {
         public void shutdown() {
             try {
                 in.close();
-
                 out.close();
                 if (!client.isClosed()) {
                     client.close();
                 }
-
+                connections.remove(this);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
+        public boolean isLoggedIn() {
+            return loggedIn;
+        }
     }
 
     public static void main(String[] args) {

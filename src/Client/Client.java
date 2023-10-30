@@ -16,18 +16,20 @@ public class Client implements Runnable, ClientInterface {
     @Override
     public void run() {
         try {
-            client = new Socket("127.0.0.1", 80);
+            client = new Socket("127.0.0.1", 8080);
             out = new PrintWriter(client.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
             InputHandler inHandler = new InputHandler();
-            Thread t = new Thread(inHandler);
-            t.start();
+            Thread inputThread = new Thread(inHandler);
+            inputThread.start();
 
-            String inMessage;
-            while ((inMessage = in.readLine()) != null) {
-                System.out.println(inMessage);
-            }
+            OutputHandler outHandler = new OutputHandler();
+            Thread outputThread = new Thread(outHandler);
+           outputThread.start();
+
+
+
 
         } catch (IOException e) {
             shutdown();
@@ -49,21 +51,37 @@ public class Client implements Runnable, ClientInterface {
 
     @Override
     public void sendMessage(String message) {
-
+        out.println(message);
     }
 
     @Override
     public void login(String nickname, String password) {
-        out.println("1");  // Send the choice
+        out.println("login");  // Send the choice
         out.println(nickname);  // Send the username
         out.println(password);  // Send the password
     }
 
     @Override
     public void register(String nickname, String password) {
-        out.println("2");  // Send the choice
+        out.println("register");  // Send the choice
         out.println(nickname);  // Send the username
         out.println(password);  // Send the password
+    }
+
+    class OutputHandler implements Runnable {
+        @Override
+        public void run() {
+            String serverMessage;
+            try {
+                while ((serverMessage = in.readLine()) != null) {
+                    if(loggedIn){
+                        System.out.println(serverMessage);
+                    }
+                }
+            } catch (IOException e) {
+                shutdown();
+            }
+        }
     }
 
     class InputHandler implements Runnable {
@@ -71,48 +89,55 @@ public class Client implements Runnable, ClientInterface {
         public void run() {
             try {
                 BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
+                System.out.println("You are not logged in. Please login or register.");
+                System.out.println("Enter /login or /register: ");
                 while (!done) {
+                    String message;
                     while (!loggedIn) {
-                        System.out.println("Press key to: ");
-                        System.out.println("1. Login: ");
-                        System.out.println("2. Register: ");
-                        String choice = inReader.readLine();
-                        if (choice.equals("1")) {
-                            System.out.println("Enter nickname: ");
+                         message = inReader.readLine();
+                        if (message.equals("/login")) {
+                            System.out.println("Enter your nickname: ");
                             String nickname = inReader.readLine();
-                            System.out.println("Enter password: ");
+                            System.out.println("Enter your password: ");
                             String password = inReader.readLine();
                             login(nickname, password);
                             String response = in.readLine();
-                            if (response.equals("logged in")) {
+                            if(response.equals("logged in")){
                                 loggedIn = true;
+                                System.out.println("You are logged in.");
+                            }else{
+                                loggedIn = false;
+                                System.out.println("Login failed. Type /login to try again or /register to register.");
                             }
-                        } else if (choice.equals("2")) {
-                            System.out.println("Enter nickname: ");
+                        } else if (message.equals("/register")) {
+                            System.out.println("Enter your nickname: ");
                             String nickname = inReader.readLine();
-                            System.out.println("Enter password: ");
+                            System.out.println("Enter your password: ");
                             String password = inReader.readLine();
                             register(nickname, password);
-
+                            System.out.println("Registering...");
                             String response = in.readLine();
-                            if (response.equals("logged in")) {
+                            if (response.equals("registered")) {
                                 loggedIn = true;
+                                System.out.println("Registration successful. You are now logged in.");
+                            } else {
+                                loggedIn = false;
+                                System.out.println("Registration failed. Type /login to login or /register to try again.");
                             }
+                        } else {
+                            System.out.println("Invalid command.");
                         }
                     }
+                    System.out.println("Enter your message: ");
+                    message = inReader.readLine();
 
-                    String serverMessage = in.readLine();
-                    System.out.println(serverMessage);
-
-                    String message = inReader.readLine();
-                    if (message.equals("/quit")) {
-                        out.println(message);
-                        inReader.close();
+                    if (message.equals("/exit")) {
                         shutdown();
-                    } else {
-                        out.println(message);
                     }
+                    sendMessage(message);
+
                 }
+
             } catch (IOException e) {
                 shutdown();
             }
