@@ -7,27 +7,27 @@ import java.net.*;
 import java.io.*;
 import java.util.concurrent.Executors;
 
+import static Server.ConsoleColor.*;
 public class Server implements Runnable {
     private final ArrayList<ConnectionHandler> connections;
     private final ArrayList<User> users;
     private ServerSocket server;
     private boolean running;
     private ExecutorService pool;
-    private final String GREEN = "\u001B[34m";
-    private final String YELLOW = "\u001B[33m";
-    private final String RESET = "\u001B[0m";
-    private final String RED = "\u001B[31m";
-    private final String WHITE = "\u001B[37m";
+    private final FileHandler fileHandler;
+
 
     public Server() {
         running = true;
         connections = new ArrayList<>();
         users = new ArrayList<>();
+        fileHandler = new FileHandler();
         System.out.println("Server started");
     }
 
     @Override
     public void run() {
+        users.addAll(fileHandler.loadUsers());
         try {
             server = new ServerSocket(8080);
             pool = Executors.newCachedThreadPool();
@@ -38,6 +38,7 @@ public class Server implements Runnable {
                 pool.execute(handler);
             }
         } catch (Exception e) {
+            e.printStackTrace();
             shutdown();
         }
     }
@@ -45,7 +46,6 @@ public class Server implements Runnable {
     public void broadcast(String message, ConnectionHandler sender) {
         for (ConnectionHandler ch : connections) {
             if (ch != null && ch.isLoggedIn() && ch != sender) {
-             //   if (ch != null && ch.isLoggedIn()) {
                 System.out.println("broadcasting: " + message + " to: " + ch.user.getNickname());
                 ch.sendMessage(message);
             }
@@ -54,6 +54,7 @@ public class Server implements Runnable {
 
     public void shutdown() {
         try {
+            fileHandler.saveUsers(users);
             running = false;
             pool.shutdown();
             if (!server.isClosed()) {
@@ -103,9 +104,9 @@ public class Server implements Runnable {
         @Override
         public void run() {
             try {
-                System.out.println(GREEN + "Client: " + client.getLocalAddress() + " connected" + RESET);
+                System.out.println(GREEN.getColor() + "Client: " + client.getLocalAddress() + " connected" + RESET.getColor());
                 if (!loggedIn) {
-                    System.out.println(YELLOW + "Client: " + client.getLocalAddress() + " is not logged in" + RESET);
+                    System.out.println(YELLOW.getColor() + "Client: " + client.getLocalAddress() + " is not logged in" + RESET.getColor());
                 }
 
                 out = new PrintWriter(client.getOutputStream(), true);
@@ -124,7 +125,7 @@ public class Server implements Runnable {
                         } else {
                             loggedIn = false;
                             out.println("failed");
-                            System.out.println(RED + "Client " + client.getLocalAddress() + " failed to log in" + RESET);
+                            System.out.println(RED.getColor() + "Client " + client.getLocalAddress() + " failed to log in" + RESET.getColor());
 
                         }
 
@@ -137,11 +138,11 @@ public class Server implements Runnable {
                             loggedIn = true;
                             user.setLoggedIn(true);
                             out.println("registered");
-                            System.out.println("Client " + client.getLocalAddress() + " registered as: " + nickname);
+                            System.out.println(GREEN.getColor()+ "Client " + client.getLocalAddress() + " registered as: " + nickname);
                         } else {
                             loggedIn = false;
                             out.println("failed");
-                            System.out.println(RED + "Client " + client.getLocalAddress() + " failed to register" + RESET);
+                            System.out.println(RED.getColor() + "Client " + client.getLocalAddress() + " failed to register" + RESET.getColor());
                         }
                     }
                 }
@@ -154,7 +155,7 @@ public class Server implements Runnable {
                         shutdown();
                         break;
                     } else {
-                        System.out.println(WHITE + "revived message from: " + nickname + ": " + inMessage + RESET);
+                        System.out.println(WHITE.getColor() + "revived message from: " + nickname + ": " + inMessage + RESET.getColor());
                         broadcast(nickname + ": " + inMessage, this);
                     }
                 }
@@ -188,8 +189,39 @@ public class Server implements Runnable {
         }
     }
 
+    static class FileHandler implements Serializable {
+        public void saveUsers(ArrayList<User> users) {
+            try {
+                FileOutputStream fileOutputStream = new FileOutputStream("users.ser");
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
+                objectOutputStream.writeObject(users);
+                objectOutputStream.close();
+                fileOutputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public ArrayList<User> loadUsers() {
+            ArrayList<User> users = new ArrayList<>();
+            try {
+                FileInputStream fileInputStream = new FileInputStream("users.ser");
+                ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+                users = (ArrayList<User>) objectInputStream.readObject();
+                objectInputStream.close();
+                fileInputStream.close();
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            return users;
+        }
+
+    }
+
+
     public static void main(String[] args) {
-        new Server().run();
+        Server server = new Server();
+        server.run();
     }
 }
 
