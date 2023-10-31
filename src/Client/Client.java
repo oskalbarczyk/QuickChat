@@ -25,11 +25,10 @@ public class Client implements Runnable, ClientInterface {
             inputThread.start();
 
             while (!done) {
-                if(loggedIn){
-                    String message = in.readLine();
-                    System.out.println(message);
+                if (loggedIn) {
+                    String receivedMessage = in.readLine();
+                    System.out.println(receivedMessage);
                 }
-
             }
 
 
@@ -58,18 +57,17 @@ public class Client implements Runnable, ClientInterface {
 
     @Override
     public void login(String nickname, String password) {
-        out.println("login");  // Send the choice
-        out.println(nickname);  // Send the username
-        out.println(password);  // Send the password
+        out.println("login");
+        out.println(nickname);
+        out.println(password);
     }
 
     @Override
     public void register(String nickname, String password) {
-        out.println("register");  // Send the choice
-        out.println(nickname);  // Send the username
-        out.println(password);  // Send the password
+        out.println("register");
+        out.println(nickname);
+        out.println(password);
     }
-
 
 
     class InputHandler implements Runnable {
@@ -82,7 +80,7 @@ public class Client implements Runnable, ClientInterface {
                 while (!done) {
                     String message;
                     while (!loggedIn) {
-                         message = inReader.readLine();
+                        message = inReader.readLine();
                         if (message.equals("/login")) {
                             System.out.println("Enter your nickname: ");
                             String nickname = inReader.readLine();
@@ -90,10 +88,10 @@ public class Client implements Runnable, ClientInterface {
                             String password = inReader.readLine();
                             login(nickname, password);
                             String response = in.readLine();
-                            if(response.equals("logged in")){
+                            if (response.equals("logged in")) {
                                 loggedIn = true;
                                 System.out.println("You are logged in.");
-                            }else{
+                            } else {
                                 loggedIn = false;
                                 System.out.println("Login failed. Type /login to try again or /register to register.");
                             }

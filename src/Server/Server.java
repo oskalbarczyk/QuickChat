@@ -37,9 +37,10 @@ public class Server implements Runnable {
         }
     }
 
-    public void broadcast(String message) {
+    public void broadcast(String message, ConnectionHandler sender){
         for (ConnectionHandler ch : connections) {
-            if (ch != null && ch.isLoggedIn()) {
+            if (ch != null && ch.isLoggedIn() && ch != sender) {
+                System.out.println("broadcasting: " + message + " to: " + ch.user.getNickname());
                 ch.sendMessage(message);
             }
         }
@@ -61,6 +62,13 @@ public class Server implements Runnable {
     }
 
     public User register(String nickname, String password){
+
+        for (User user : users) {
+            if (user.getNickname().equals(nickname)) {
+                return null;
+            }
+        }
+
         User user = new User(nickname, password);
         users.add(user);
         return user;
@@ -68,7 +76,7 @@ public class Server implements Runnable {
 
     public User login(String nickname, String password) {
         for (User user : users) {
-            if (user.nickname.equals(nickname) && user.password.equals(password)) {
+            if (user.getNickname().equals(nickname) && user.getPassword().equals(password)) {
                 return user;
             }
         }
@@ -79,7 +87,7 @@ public class Server implements Runnable {
         private final Socket client;
         private BufferedReader in;
         private PrintWriter out;
-        private boolean loggedIn;
+        private boolean loggedIn = false;
         private User user;
 
         public ConnectionHandler(Socket client) {
@@ -119,7 +127,9 @@ public class Server implements Runnable {
                         String password = in.readLine();
                         user = register(nickname, password);
                         if(user != null){
+                            user.setLoggedIn(true);
                             loggedIn = true;
+                            user.setLoggedIn(true);
                             out.println("registered");
                             System.out.println("Client " + client.getLocalAddress() + " registered as: " + nickname);
                         }else{
@@ -130,7 +140,7 @@ public class Server implements Runnable {
                     }
                 }
 
-                String nickname = user.nickname;
+                String nickname = user.getNickname();
 
                 while (loggedIn) {
                     String inMessage = in.readLine();
@@ -138,8 +148,8 @@ public class Server implements Runnable {
                         shutdown();
                         break;
                     } else {
-                        System.out.println(nickname + ": " + inMessage);
-                        broadcast(nickname + ": " + inMessage);
+                        System.out.println("revived message from: " + nickname + ": " + inMessage);
+                        broadcast(nickname + ": " + inMessage,this);
                     }
                 }
 
@@ -155,6 +165,7 @@ public class Server implements Runnable {
 
         public void shutdown() {
             try {
+                user.setLoggedIn(false);
                 in.close();
                 out.close();
                 if (!client.isClosed()) {
