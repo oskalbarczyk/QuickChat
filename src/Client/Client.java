@@ -24,11 +24,13 @@ public class Client implements Runnable, ClientInterface {
             Thread inputThread = new Thread(inHandler);
             inputThread.start();
 
-            OutputHandler outHandler = new OutputHandler();
-            Thread outputThread = new Thread(outHandler);
-           outputThread.start();
+            while (!done) {
+                if(loggedIn){
+                    String message = in.readLine();
+                    System.out.println(message);
+                }
 
-
+            }
 
 
         } catch (IOException e) {
@@ -68,21 +70,7 @@ public class Client implements Runnable, ClientInterface {
         out.println(password);  // Send the password
     }
 
-    class OutputHandler implements Runnable {
-        @Override
-        public void run() {
-            String serverMessage;
-            try {
-                while ((serverMessage = in.readLine()) != null) {
-                    if(loggedIn){
-                        System.out.println(serverMessage);
-                    }
-                }
-            } catch (IOException e) {
-                shutdown();
-            }
-        }
-    }
+
 
     class InputHandler implements Runnable {
         @Override

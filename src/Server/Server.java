@@ -132,11 +132,11 @@ public class Server implements Runnable {
 
                 String nickname = user.nickname;
 
-                while (loggedIn) { // Add this loop here
+                while (loggedIn) {
                     String inMessage = in.readLine();
                     if (inMessage.equals("/exit")) {
                         shutdown();
-                        break; // break the loop
+                        break;
                     } else {
                         System.out.println(nickname + ": " + inMessage);
                         broadcast(nickname + ": " + inMessage);
