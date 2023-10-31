@@ -13,6 +13,11 @@ public class Server implements Runnable {
     private ServerSocket server;
     private boolean running;
     private ExecutorService pool;
+    private final String GREEN = "\u001B[34m";
+    private final String YELLOW = "\u001B[33m";
+    private final String RESET = "\u001B[0m";
+    private final String RED = "\u001B[31m";
+    private final String WHITE = "\u001B[37m";
 
     public Server() {
         running = true;
@@ -37,7 +42,7 @@ public class Server implements Runnable {
         }
     }
 
-    public void broadcast(String message, ConnectionHandler sender){
+    public void broadcast(String message, ConnectionHandler sender) {
         for (ConnectionHandler ch : connections) {
             if (ch != null && ch.isLoggedIn() && ch != sender) {
                 System.out.println("broadcasting: " + message + " to: " + ch.user.getNickname());
@@ -61,7 +66,7 @@ public class Server implements Runnable {
         }
     }
 
-    public User register(String nickname, String password){
+    public User register(String nickname, String password) {
 
         for (User user : users) {
             if (user.getNickname().equals(nickname)) {
@@ -97,9 +102,9 @@ public class Server implements Runnable {
         @Override
         public void run() {
             try {
-                System.out.println("Client " + client.getLocalAddress() + " connected");
-                if(!loggedIn){
-                    System.out.println("Client " + client.getLocalAddress() + " is not logged in");
+                System.out.println(GREEN + "Client: " + client.getLocalAddress() + " connected" + RESET);
+                if (!loggedIn) {
+                    System.out.println(YELLOW + "Client: " + client.getLocalAddress() + " is not logged in" + RESET);
                 }
 
                 out = new PrintWriter(client.getOutputStream(), true);
@@ -111,14 +116,14 @@ public class Server implements Runnable {
                         String nickname = in.readLine();
                         String password = in.readLine();
                         user = login(nickname, password);
-                        if(user != null){
+                        if (user != null) {
                             loggedIn = true;
                             out.println("logged in");
                             System.out.println("Client " + client.getLocalAddress() + " logged in");
-                        }else{
+                        } else {
                             loggedIn = false;
                             out.println("failed");
-                            System.out.println("Client " + client.getLocalAddress() + " failed to log in");
+                            System.out.println(RED + "Client " + client.getLocalAddress() + " failed to log in" + RESET);
 
                         }
 
@@ -126,16 +131,16 @@ public class Server implements Runnable {
                         String nickname = in.readLine();
                         String password = in.readLine();
                         user = register(nickname, password);
-                        if(user != null){
+                        if (user != null) {
                             user.setLoggedIn(true);
                             loggedIn = true;
                             user.setLoggedIn(true);
                             out.println("registered");
                             System.out.println("Client " + client.getLocalAddress() + " registered as: " + nickname);
-                        }else{
+                        } else {
                             loggedIn = false;
                             out.println("failed");
-                            System.out.println("Client " + client.getLocalAddress() + " failed to register");
+                            System.out.println(RED + "Client " + client.getLocalAddress() + " failed to register" + RESET);
                         }
                     }
                 }
@@ -148,8 +153,8 @@ public class Server implements Runnable {
                         shutdown();
                         break;
                     } else {
-                        System.out.println("revived message from: " + nickname + ": " + inMessage);
-                        broadcast(nickname + ": " + inMessage,this);
+                        System.out.println(WHITE + "revived message from: " + nickname + ": " + inMessage + RESET);
+                        broadcast(nickname + ": " + inMessage, this);
                     }
                 }
 

@@ -10,7 +10,7 @@ public class Client implements Runnable, ClientInterface {
     private Socket client;
     private BufferedReader in;
     private PrintWriter out;
-    private boolean done;
+    private boolean done = false;
     private boolean loggedIn = false;
 
     @Override
@@ -25,7 +25,7 @@ public class Client implements Runnable, ClientInterface {
             inputThread.start();
 
             while (!done) {
-                if (loggedIn) {
+                if(loggedIn) {
                     String receivedMessage = in.readLine();
                     System.out.println(receivedMessage);
                 }
@@ -68,6 +68,7 @@ public class Client implements Runnable, ClientInterface {
         out.println(nickname);
         out.println(password);
     }
+
 
 
     class InputHandler implements Runnable {
