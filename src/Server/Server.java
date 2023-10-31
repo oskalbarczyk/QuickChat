@@ -45,6 +45,7 @@ public class Server implements Runnable {
     public void broadcast(String message, ConnectionHandler sender) {
         for (ConnectionHandler ch : connections) {
             if (ch != null && ch.isLoggedIn() && ch != sender) {
+             //   if (ch != null && ch.isLoggedIn()) {
                 System.out.println("broadcasting: " + message + " to: " + ch.user.getNickname());
                 ch.sendMessage(message);
             }

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Objects;
 
 public class Client implements Runnable, ClientInterface {
     private Socket client;
@@ -27,12 +28,16 @@ public class Client implements Runnable, ClientInterface {
             while (!done) {
                 if(loggedIn) {
                     String receivedMessage = in.readLine();
-                    System.out.println(receivedMessage);
+                    System.out.println(Objects.requireNonNullElse(receivedMessage, "No message received."));
+                }else {
+                    synchronized (this){
+                        wait(100);
+                    }
                 }
             }
 
 
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             shutdown();
         }
     }
